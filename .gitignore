@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Environment
+.env
+.env.local
+
+# Skill development
+.agents
+skills-lock.json
+neuroforge-trust-workspace/
+neuroforge/
