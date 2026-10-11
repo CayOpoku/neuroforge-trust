@@ -143,29 +143,23 @@ Run these against every path that changes state. Each is a question; a "no" or "
 
 ## Running a full audit
 
-The aim is a report that is thorough where the damage would be and honest about where it is not, at the lowest cost in reading. Reading every file is not thorough: it spends the budget on code that cannot hurt anyone. **Read `references/scanning.md` before a full audit** — it holds the full procedure. Three habits carry it:
+The aim is an audit that is thorough where the damage would be and honest about where it is not, at the lowest cost in reading and writing. Three habits carry it:
 
 - **Search first, read second.** Build the map of write paths from search hits — a path and a line — not by opening files. Open a file only when a hit earns it, and read the function, not the file.
 - **Spend depth where the damage is.** Every path that touches money, entitlement, identity or credentials, receives a third party's claim, or accepts a write with no session is traced end to end. Ordinary scoped paths are sampled by pattern and confirmed by search. The first group is never sampled.
-- **Write as you go.** Create the report as soon as the map exists and add each finding the moment it is confirmed. An interrupted audit then loses nothing, the next run starts from the file instead of from zero, and you never hold the whole audit in your head.
+- **Report problems, not the system.** The report holds findings, the paths you did not fully examine, and the verdict. It does not list the developer's endpoints, describe their authentication, or narrate what you read. The map you build stays in your head; only what is wrong goes on the page.
 
-| Phase | What you do | What the report gains |
-|---|---|---|
-| 1. Orient | Read the manifest, the layout and the routing entry point. Read `neuroforge/audit/trust-audit.md` if it exists | Earlier findings to re-verify |
-| 2. Map | Search for every entry point that changes state and every storage write; reconcile the two lists | The file is created, with the write-surface table |
-| 3. Protected values | Read the schema once; note the constraints that already exist | Protected values and constraints |
-| 4. Shared machinery | Read authentication, scope resolution, validation, rate limits and config loading once | Conclusions that apply to many routes, recorded once |
-| 5. Tier | Sort paths: high-consequence, ordinary, read-only | Each path's intended depth |
-| 6. Trace | Walk each high-consequence path backwards from the write, worst first, running the fifteen checks | Findings, appended as confirmed |
-| 7. Sample and hunt | One ordinary path per pattern; then the per-check searches from `references/checks.md` | More findings; sampled paths marked |
-| 8. Parallel paths | Group write sites by the column they write and compare their rules | The findings nothing else catches |
-| 9. Close | Coverage line, open questions, verdict | A finished report |
+For a small project — a handful of source files, about a dozen write paths or fewer — read it, run the fifteen checks, and write the report **once**, at the end. For anything larger, read `references/scanning.md` first: it holds the phase-by-phase procedure, the tiers, and how to write the report in batches.
 
-Open with one line: _"Activating NeuroForge Trust analysis — I will write my report to `neuroforge/audit/` and will not touch your code."_ Then start; the audit needs no permission.
+Open with one line: _"Activating NeuroForge Trust analysis — I will write my report to `neuroforge/audit/` and will not touch your code."_ Then start; the audit needs no permission. If `neuroforge/audit/trust-audit.md` already exists, read it first and re-verify its open findings.
 
-**Efficient never means quietly thinner.** Every path in the write-surface table ends as *Traced*, *Sampled* or *Not reached*, and the briefing says which. If the codebase is too large for one pass, finish the high-consequence paths completely and leave the rest marked *Not reached*; do not spread the effort thin across everything.
+**Map every way state can change, not only the obvious routes:** HTTP handlers, RPC and GraphQL mutations, server actions, form posts, websocket messages, webhook receivers, queue consumers, scheduled jobs, import and bulk endpoints, sync and offline-replay endpoints, admin and internal tools. The forgotten path is usually where the rule is missing.
 
-**Why start at the write.** Tracing backwards from the storage call to the request is what keeps you from trusting a value merely because it passed through a validator on the way in.
+**Start at the write and walk backwards.** Tracing from the storage call to the request is what keeps you from trusting a value merely because it passed through a validator on the way in.
+
+**Efficient never means quietly thinner.** The report's coverage line says how many write paths were traced, sampled and not reached, and any path not fully traced is named. If the codebase is too large for one pass, finish the high-consequence paths completely and name the rest as not reached; do not spread the effort thin across everything.
+
+**Keep the output short.** Writing costs more than reading. A finding is about 80 words; a clean result is about 150 words in total. Do not add sections, background, or advice that was not asked for.
 
 ### After the scan: brief, then wait
 
@@ -219,7 +213,7 @@ List **every** input the endpoint reads, including headers, cookies, path and qu
 
 If the plan needs a "No" row to arrive from the client anyway, that is the conversation to have before the code is written. Name the concrete cost, propose the alternative, and let the developer decide.
 
-Save the table to `neuroforge/audit/trust-table-<endpoint>.md` and present it in chat. The table is a plan, not a licence: write no code until the developer says "Proceed".
+Save the table to `neuroforge/audit/trust-table-<endpoint>.md` and present it in chat. Keep it to the table and its one-line answers, one table per endpoint that writes state. No essay around it, no test plan, no implementation notes: anything the developer must decide is a row marked as theirs to decide. The table is a plan, not a licence: write no code until the developer says "Proceed".
 
 ---
 
@@ -265,7 +259,7 @@ Load on demand:
 
 | File | Read it when |
 |---|---|
-| `references/scanning.md` | Before a full audit — the phase-by-phase procedure, the tiers, the reading rules, re-runs and large codebases |
+| `references/scanning.md` | Before auditing a larger codebase (more than about a dozen write paths) — the phases, the tiers, the reading rules, batching, re-runs. Skip it for a small project |
 | `references/checks.md` | Before a full audit, in full. For a spot check, only the sections for the checks that apply |
 | `references/report-format.md` | Writing a report to `neuroforge/audit/`, a finding, the chat briefing or the closing verdict |
 | `references/abuse-tests.md` | Proving a finding, or turning findings into regression tests |

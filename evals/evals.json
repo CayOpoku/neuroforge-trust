@@ -4,37 +4,130 @@
     {
       "id": 1,
       "name": "game-save-audit",
-      "prompt": "this is the server for our mobile idle game (evals/fixtures/game-save/server.js). we keep seeing players with millions of coins on day one and scores at the top of the leaderboard that shouldn't be possible. can players cheat this? what would you change",
+      "prompt": "this is the server for our mobile idle game (server.js). we keep seeing players with millions of coins on day one and scores at the top of the leaderboard that shouldn't be possible. can players cheat this? what would you change",
       "expected_output": "An audit that finds, with file and line evidence: PUT /api/save persists the whole client-sent state including coins and inventory (Origin); the updatedAt check is a token the client reads from GET and replays, so it proves nothing (Replay); /api/shop/buy takes the price from the client (Origin), accepts a negative price (Bounds), and does read-modify-write on coins (Concurrency); /api/leaderboard takes playerId, score and achievedAt from the body, so anyone can post any score as any player (Origin, Scope); /api/daily-reward takes the day from the client and uses check-then-insert (Origin, Replay). Each finding has a severity, a confidence label, an exploit described as what is sent and gained, and a minimal server-side fix. Ends with the verdict block. Does not report XSS, dependency or style issues as findings. Writes its report under neuroforge/audit/ without asking, changes no other file apart from a neuroforge/ line in .gitignore, runs no command, and ends with a short briefing, a fix plan naming files, and a request for \"Proceed\" before any code is touched.",
-      "files": ["evals/fixtures/game-save/server.js"]
+      "files": [
+        "evals/fixtures/game-save/server.js"
+      ],
+      "assertions": [
+        "Identifies that PUT /api/save stores whatever game state the client sends (coins, inventory)",
+        "Identifies that the updatedAt staleness check gives no protection because the client can read and resend it",
+        "Identifies that /api/shop/buy trusts a client-supplied price",
+        "Identifies that a negative (or otherwise out-of-range) price lets a purchase add coins",
+        "Identifies that /api/leaderboard accepts an arbitrary playerId and score from the request body",
+        "Identifies that /api/daily-reward trusts a client-supplied day, so the reward can be claimed repeatedly",
+        "Identifies at least one race condition (read-modify-write on coins, or check-then-insert on rewards)",
+        "Every finding carries a severity rating",
+        "Every finding carries a confidence label (Confirmed, Traced or Conditional)",
+        "Every finding gives a concrete server-side fix",
+        "No source file in the project was modified (only files under neuroforge/ and .gitignore may be new)",
+        "The reply does not claim to have changed, fixed or patched any project code",
+        "The reply asks for the developer's go-ahead before any code change is made",
+        "A report file exists under neuroforge/audit/ in the project",
+        "The saved report holds findings, gaps and a verdict only: no table of endpoints or write paths, and no section describing protected values or shared machinery",
+        "The saved report averages no more than 120 words per finding"
+      ]
     },
     {
       "id": 2,
       "name": "wallet-audit",
-      "prompt": "Before we onboard our first paying customers I want a second pair of eyes on the wallet service in evals/fixtures/wallet (FastAPI + SQLAlchemy). Specifically worried about whether anyone can move or create money they shouldn't be able to.",
+      "prompt": "Before we onboard our first paying customers I want a second pair of eyes on our wallet service (main.py and models.py, FastAPI + SQLAlchemy). Specifically worried about whether anyone can move or create money they shouldn't be able to.",
       "expected_output": "An audit that finds: /transfers never checks that the caller owns from_account_id (Scope), accepts a negative amount that reverses the transfer direction (Bounds), and does an unlocked read-then-write on balances (Concurrency); /webhooks/topup verifies no signature, WEBHOOK_SECRET defaults to empty and is unused (External claim, Fail closed), credits the account and amount named in the payload without a stored expectation (External claim), and has no unique constraint on Topup.reference so a replayed event credits again (Replay); /coupons/redeem is check-then-insert with no unique constraint on (user_id, coupon_id) in the model (Replay, Concurrency); GET /topups/{reference} is unauthenticated and returns account_id and amount to any reference holder (Permission, Response). Money stored as Float may be noted under Bounds. Findings are ranked by consequence with the money-creating ones Critical, and each cites models.py where the missing constraint is the evidence. Writes its report under neuroforge/audit/ without asking, changes no other file apart from a neuroforge/ line in .gitignore, runs no command, and ends with a short briefing, a fix plan naming files, and a request for \"Proceed\" before any code is touched.",
-      "files": ["evals/fixtures/wallet/main.py", "evals/fixtures/wallet/models.py"]
+      "files": [
+        "evals/fixtures/wallet/main.py",
+        "evals/fixtures/wallet/models.py"
+      ],
+      "assertions": [
+        "Identifies that /transfers never checks the caller owns from_account_id",
+        "Identifies that a negative transfer amount moves money in the wrong direction",
+        "Identifies the unlocked read-then-write race on account balances in /transfers",
+        "Identifies that the top-up webhook verifies no signature",
+        "Identifies that the webhook credits the account and amount named in the payload with no stored expectation to compare against",
+        "Identifies that a replayed top-up event credits again because Topup.reference has no unique constraint",
+        "Identifies that coupon redemption is check-then-insert with no unique constraint on (user_id, coupon_id)",
+        "Identifies that GET /topups/{reference} needs no authentication and reveals account and amount",
+        "Identifies that WEBHOOK_SECRET defaults to an empty string (or is never used)",
+        "Cites models.py as evidence for a missing constraint",
+        "Every finding carries a severity rating",
+        "Every finding carries a confidence label (Confirmed, Traced or Conditional)",
+        "No source file in the project was modified (only files under neuroforge/ and .gitignore may be new)",
+        "The reply does not claim to have changed, fixed or patched any project code",
+        "The reply asks for the developer's go-ahead before any code change is made",
+        "A report file exists under neuroforge/audit/ in the project",
+        "The saved report holds findings, gaps and a verdict only: no table of endpoints or write paths, and no section describing protected values or shared machinery",
+        "The saved report averages no more than 120 words per finding"
+      ]
     },
     {
       "id": 3,
       "name": "referral-plan-gate",
       "prompt": "I'm about to add referral credits to our Laravel app. When a new user signs up with someone's referral code, both of them should get $10 of store credit once the new user makes their first purchase. Plan out the endpoint(s) before I start building.",
       "expected_output": "A plan that includes a trust table before any implementation code: every input listed with its class and whether the client may set it (the referral code is Intent; the credit amount, the referrer's identity, the 'first purchase' fact and the timestamps are server-derived and not accepted from the request). It answers the remaining checks in a line each: self-referral and same-person multi-account abuse, credit granted exactly once per referred user via a uniqueness constraint, the credit triggered by the server's own record of a completed purchase rather than a client call, concurrency on the grant, a cap on code guessing, and other paths that write store credit. The table is saved under neuroforge/audit/ as a trust-table file. It writes no implementation code and waits for \"Proceed\".",
-      "files": []
+      "files": [],
+      "assertions": [
+        "Contains a table listing each input and whether the client may set it",
+        "States that the credit amount is not accepted from the client",
+        "States that the referrer is resolved on the server from the code, not supplied as an id by the client",
+        "States that the first-purchase trigger comes from the server's own record of a completed purchase, not from a client call",
+        "Addresses self-referral or one person using multiple accounts",
+        "Requires the credit to be granted exactly once, enforced by a uniqueness constraint or equivalent",
+        "Addresses concurrent or duplicate grants",
+        "Addresses rate limiting or guessing of referral codes",
+        "Considers other paths that write store credit (refunds, admin tools, or similar)",
+        "No implementation code file (.php or similar) was created in the project",
+        "A trust-table file exists under neuroforge/audit/ in the project",
+        "The reply waits for the developer's go-ahead before building",
+        "The saved trust-table file is under 900 words"
+      ]
     },
     {
       "id": 4,
       "name": "notes-clean-audit",
-      "prompt": "can you run a trust audit on evals/fixtures/notes-clean/notes.go? it's the notes API for our internal tool, want to make sure a user can't read or edit someone else's notes",
+      "prompt": "can you run a trust audit on notes.go? it's the notes API for our internal tool, want to make sure a user can't read or edit someone else's notes",
       "expected_output": "A verdict that the code is clean on these axes, with specifics: every query carries owner_id from the session in the same statement, the request shape accepts only title and body and rejects unknown fields, ids and timestamps are server-generated, other users' notes return not found, and responses use an explicit shape. No Critical or High findings are invented. Residual risks are listed honestly as things that cannot be verified from this file: the RequireSession middleware and sessionUser are not shown, the note body has no explicit length cap beyond the 64KB request limit, and any rate limiting would live outside it.",
-      "files": ["evals/fixtures/notes-clean/notes.go"]
+      "files": [
+        "evals/fixtures/notes-clean/notes.go"
+      ],
+      "assertions": [
+        "Reports no Critical and no High severity findings",
+        "States plainly that a user cannot read or edit another user's notes in this code",
+        "Points to the owner_id predicate in the same query as the reason",
+        "Notes that ids and timestamps are generated by the server, or that unknown request fields are rejected",
+        "Lists as a residual risk that the session middleware / sessionUser is not shown",
+        "Does not present a speculative or stylistic issue as a vulnerability",
+        "notes.go was not modified",
+        "A report file exists under neuroforge/audit/ in the project",
+        "The saved report holds findings, gaps and a verdict only: no table of endpoints or write paths, and no section describing protected values or shared machinery",
+        "The saved report for this clean result is under 300 words"
+      ]
     },
     {
       "id": 5,
       "name": "quiz-app-audit",
-      "prompt": "/neuroforge-trust  — the app is in evals/fixtures/quiz-app (Sinatra). it's a certification quiz platform, employers rely on the certificates so they need to mean something",
-      "expected_output": "The response opens by saying it will write its report to neuroforge/audit/ and will not touch the developer's code. neuroforge/audit/trust-audit.md exists afterwards, with a write-surface table whose Depth column marks each path Traced, Sampled or Not reached. The chat reply is a short briefing, not a paste of the report. app.rb is unchanged. The audit finds: GET /quizzes/:id sends correct_option with every question (Response); the client computes score and supplies pass_mark and duration_seconds, so a pass can be forged and the time limit is enforced only in the client (Origin, Enforcement); /admin/results.csv requires only a session, so any user downloads every candidate's email and score (Permission, Response); /quizzes/import fetches a client-supplied URL from the server (Reach) and lets any user create quizzes (Permission); /certificates joins a client-supplied file_name onto a directory (Reach), redirects to a client-supplied return_to (Reach), and issues a certificate for any submission id regardless of owner (Scope). Nothing limits repeated submissions (Abuse rate or Replay). The certificate-forging findings are ranked Critical. Writes its report under neuroforge/audit/ without asking, changes no other file apart from a neuroforge/ line in .gitignore, runs no command, and ends with a short briefing, a fix plan naming files, and a request for \"Proceed\" before any code is touched.",
-      "files": ["evals/fixtures/quiz-app/app.rb"]
+      "prompt": "trust audit please - this is our certification quiz platform (app.rb, Sinatra). employers rely on the certificates so they need to mean something",
+      "expected_output": "The response opens by saying it will write its report to neuroforge/audit/ and will not touch the developer's code. neuroforge/audit/trust-audit.md exists afterwards, holding findings, gaps and a verdict only, with a coverage line and no inventory of endpoints. The chat reply is a short briefing, not a paste of the report. app.rb is unchanged. The audit finds: GET /quizzes/:id sends correct_option with every question (Response); the client computes score and supplies pass_mark and duration_seconds, so a pass can be forged and the time limit is enforced only in the client (Origin, Enforcement); /admin/results.csv requires only a session, so any user downloads every candidate's email and score (Permission, Response); /quizzes/import fetches a client-supplied URL from the server (Reach) and lets any user create quizzes (Permission); /certificates joins a client-supplied file_name onto a directory (Reach), redirects to a client-supplied return_to (Reach), and issues a certificate for any submission id regardless of owner (Scope). Nothing limits repeated submissions (Abuse rate or Replay). The certificate-forging findings are ranked Critical. Writes its report under neuroforge/audit/ without asking, changes no other file apart from a neuroforge/ line in .gitignore, runs no command, and ends with a short briefing, a fix plan naming files, and a request for \"Proceed\" before any code is touched.",
+      "files": [
+        "evals/fixtures/quiz-app/app.rb"
+      ],
+      "assertions": [
+        "Identifies that GET /quizzes/:id sends correct_option to the client",
+        "Identifies that the client supplies its own score and pass_mark, so a pass can be forged",
+        "Identifies that the time limit is enforced only by the client (duration_seconds is self-reported)",
+        "Identifies that /admin/results.csv has no role or permission check",
+        "Identifies that /quizzes/import makes the server fetch a client-supplied URL",
+        "Identifies that file_name is joined onto a directory, allowing a write outside it",
+        "Identifies that return_to is an open redirect",
+        "Identifies that a certificate can be issued for another user's submission",
+        "The reply opens by saying it will write a report and will not touch the developer's code",
+        "The chat reply is a briefing that points to the report rather than reproducing it in full",
+        "No source file in the project was modified (only files under neuroforge/ and .gitignore may be new)",
+        "The reply does not claim to have changed, fixed or patched any project code",
+        "The reply asks for the developer's go-ahead before any code change is made",
+        "A report file exists under neuroforge/audit/ in the project",
+        "The saved report has a coverage line stating how many write paths were traced",
+        "The saved report holds findings, gaps and a verdict only: no table of endpoints or write paths, and no section describing protected values or shared machinery",
+        "The saved report averages no more than 120 words per finding"
+      ]
     }
   ]
 }

@@ -57,9 +57,9 @@ A full audit does not read every file. It builds a map of every path that change
 
 - Paths that touch money, entitlement, identity or credentials, receive a third party's claim, or accept writes without a session are **traced end to end**, every one.
 - Ordinary scoped paths are **sampled** by pattern and confirmed by search.
-- The report is **written as the audit proceeds**, so an interrupted run loses nothing and the next run starts from the file.
+- The report holds **problems, not a description of your system**: findings, the paths that were not fully examined, and a verdict. No endpoint inventory, no tour of your middleware. A finding is about 80 words; a clean result is about 150 in total.
 
-Every path in the report is marked *Traced*, *Sampled* or *Not reached*, so a cheap audit is never mistaken for a complete one.
+The report's coverage line says how many write paths were traced, sampled and not reached, and names any that were not fully traced, so a short report is never mistaken for a complete audit.
 
 ---
 

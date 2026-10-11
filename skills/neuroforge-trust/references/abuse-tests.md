@@ -176,7 +176,7 @@ Then   it is refused
 | organisation name | profile route | ? | ? | ? |
 | organisation name | bulk import | ? | ? | ? |
 
-Build the table from the audit's write-surface map. Every `?` is either a missing test or an undiscovered finding.
+Build the table from the map of write paths made during the audit. Every `?` is either a missing test or an undiscovered finding.
 
 ---
 
