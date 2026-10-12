@@ -1,8 +1,14 @@
 # NeuroForge Trust
 
-A stack-agnostic audit skill for one class of bug: the server storing or acting on a value the client should never have been allowed to decide. Tampered fields, cross-tenant access by id, illegal status changes, replayed and concurrent requests, unverified payments and webhooks, missing abuse limits, credentials that survive rotation, checks that fail open.
+**How far can you trust your system?**
 
-It asks one question of every write path — *who decided this value, and should they have been allowed to?* — and it works on any language or framework, because the checks are about where a value came from, not about how the code is written.
+Finds every place your server believes something it should have decided for itself.
+
+A system can be trusted only as far as the values it accepts without checking. NeuroForge Trust is a stack-agnostic audit skill that measures exactly that: tampered fields, cross-tenant access by id, illegal status changes, replayed and concurrent requests, unverified payments and webhooks, missing abuse limits, credentials that survive rotation, checks that fail open.
+
+It gets there by asking one question of every write path — *who decided this value, and should they have been allowed to?* — and it works on any language or framework, because the checks are about where a value came from, not about how the code is written.
+
+It answers that one question well and nothing else. It is not a full security scan: XSS, injection and dependency vulnerabilities are left to the tools built for them, so a clean result here means "the server is the authority", not "the system is secure".
 
 **It works on its own.** No other skill, plugin or tool is required — install it into any project and run it. It is part of the NeuroForge family and sits comfortably beside [neuroforge-nest](https://github.com/cayopoku/neuroforge-nest), [neuroforge-nuxt](https://github.com/cayopoku/neuroforge-nuxt) and [neuroforge-qa](https://github.com/cayopoku/neuroforge-qa), but it depends on none of them.
 
