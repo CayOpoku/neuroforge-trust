@@ -89,7 +89,30 @@ Every value a server stores is classed by where it may come from — identity, e
 14. **Fail closed** — does missing config or a failed check refuse?
 15. **Response** — does the caller see only what they are entitled to, and only when?
 
-It deliberately does **not** cover XSS, SQL injection, dependency CVEs, secret scanning, style or performance. A narrow pass finds what a general review walks past.
+---
+
+## What it finds, and what it leaves to other tools
+
+It finds the places where your server trusts something it shouldn't. They are how people get free plans, forge payments and read other tenants' data, and they map onto most of the [OWASP API Security Top 10](https://owasp.org/API-Security/editions/2023/en/0x11-t10/). They are also the kind of flaw ordinary scanners tend to miss, because the code looks correct.
+
+**What it does not find:**
+
+- cross-site scripting and SQL injection
+- vulnerable or outdated dependencies
+- leaked passwords and API keys in the code
+- weak encryption or TLS settings
+- server, cloud and network misconfiguration
+
+It leaves these out on purpose, because other tools already cover them well and adding them would dilute the focus.
+
+### For fuller coverage
+
+Pair it with a dependency scanner, a secret scanner, and a general code security review. Claude Code's built-in `/security-review` covers the injection-style issues this skill skips.
+
+- **In Claude Code there is nothing to install.** Type `/security-review` and it reviews the pending changes on your current branch. It is listed in the [Claude Code command reference](https://code.claude.com/docs/en/commands).
+- **To customise it, or to run it on every pull request,** use [anthropics/claude-code-security-review](https://github.com/anthropics/claude-code-security-review). That repository holds the command's source, which you can copy into your project's `.claude/commands/` folder and edit, and a GitHub Action that runs the same review on pull requests.
+
+The two complement each other. `/security-review` looks at a change for a broad range of vulnerabilities; NeuroForge Trust looks across the codebase for one kind. That review also filters out rate-limiting and open-redirect findings by design, and this skill checks both (**Abuse rate** and **Reach**).
 
 ---
 
